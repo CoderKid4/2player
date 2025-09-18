@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        #game-container {
+            width: 1000px;
+            height: 600px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background-color: #0e1a40;
+            display: block;
+        }
+        
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(14, 26, 64, 0.9);
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            color: #ffd700;
+        }
+        
+        h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #ffd700;
+        }
+        
+        .menu-button {
+            background: linear-gradient(to bottom, #ff8c00, #ff4500);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 250px;
+            text-align: center;
+            box-shadow: 0 4px 0 #cc3700;
+        }
+        
+        .menu-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 0 #cc3700;
+        }
+        
+        .menu-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #cc3700;
+        }
+        
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .character-card {
+            width: 150px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .character-card:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .character-card.selected {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 15px #ffd700;
+        }
+        
+        .character-icon {
+            width: 80px;
+            height: 80px;
+            background-color: #3498db;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+        }
+        
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .character-type {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .locked {
+            filter: grayscale(1);
+            opacity: 0.7;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .map-card {
+            width: 180px;
+            height: 120px;
+            background: #152c6e;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .map-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .map-card.selected {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 15px #ffd700;
+        }
+        
+        .chest-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 30px 0;
+        }
+        
+        .chest {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chest:hover {
+            transform: scale(1.1);
+        }
+        
+        .small-chest {
+            background: linear-gradient(to bottom, #8B4513, #A0522D);
+            box-shadow: 0 5px 0 #5D4037;
+        }
+        
+        .big-chest {
+            background: linear-gradient(to bottom, #6A0DAD, #9B30FF);
+            box-shadow: 0 5px 0 #4A235A;
+        }
+        
+        .legendary-chest {
+            background: linear-gradient(to bottom, #FFD700, #FFA500);
+            box-shadow: 0 5px 0 #B8860B;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .unlock-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffd700;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            width: 300px;
+        }
+        
+        .notification {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .show {
+            opacity: 1;
+        }
+        
+        .gold {
+            color: #ffd700;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1000" height="600"></canvas>
+        
+        <div id="main-menu" class="screen">
+            <h1>MULTIPLAYER ARENA</h1>
+            <button class="menu-button" onclick="showScreen('character-select')">PLAY</button>
+            <button class="menu-button" onclick="showScreen('map-select')">MAP SELECT</button>
+            <button class="menu-button" onclick="showScreen('chest-room')">CHEST ROOM</button>
+            <button class="menu-button" onclick="showScreen('settings')">SETTINGS</button>
+            <div class="unlock-input">
+                <input type="text" id="unlock-code" placeholder="Enter unlock code">
+                <button onclick="checkUnlockCode()">UNLOCK</button>
+            </div>
+        </div>
+        
+        <div id="character-select" class="screen hidden">
+            <h2>SELECT YOUR CHARACTERS</h2>
+            <div class="character-grid">
+                <div class="character-card" data-character="0" onclick="selectCharacter(0, 0)">
+                    <div class="character-icon">👊</div>
+                    <div class="character-name">Brawler</div>
+                    <div class="character-type">Common</div>
+                </div>
+                <div class="character-card" data-character="1" onclick="selectCharacter(0, 1)">
+                    <div class="character-icon">🏃</div>
+                    <div class="character-name">Runner</div>
+                    <div class="character-type">Common</div>
+                </div>
+                <div class="character-card locked" data-character="2" onclick="selectCharacter(0, 2)">
+                    <div class="character-icon">🧙</div>
+                    <div class="character-name">Mage</div>
+                    <div class="character-type">Rare</div>
+                </div>
+                <div class="character-card locked" data-character="3" onclick="selectCharacter(0, 3)">
+                    <div class="character-icon">🏹</div>
+                    <div class="character-name">Archer</div>
+                    <div class="character-type">Rare</div>
+                </div>
+                <div class="character-card locked" data-character="4" onclick="selectCharacter(0, 4)">
+                    <div class="character-icon">🥷</div>
+                    <div class="character-name">Ninja</div>
+                    <div class="character-type">Epic</div>
+                </div>
+                <div class="character-card locked" data-character="5" onclick="selectCharacter(0, 5)">
+                    <div class="character-icon">🔮</div>
+                    <div class="character-name">Wizard</div>
+                    <div class="character-type">Epic</div>
+                </div>
+                <div class="character-card locked" data-character="6" onclick="selectCharacter(0, 6)">
+                    <div class="character-icon">👑</div>
+                    <div class="character-name">King</div>
+                    <div class="character-type">Legendary</div>
+                </div>
+                <div class="character-card locked" data-character="7" onclick="selectCharacter(0, 7)">
+                    <div class="character-icon">🐉</div>
+                    <div class="character-name">Dragon</div>
+                    <div class="character-type">Mythic</div>
+                </div>
+            </div>
+            <button class="menu-button" onclick="startGame()">START GAME</button>
+            <button class="menu-button" onclick="showScreen('main-menu')">BACK</button>
+        </div>
+        
+        <div id="map-select" class="screen hidden">
+            <h2>SELECT A MAP</h2>
+            <div class="map-grid">
+                <div class="map-card" onclick="selectMap(0)">Forest</div>
+                <div class="map-card" onclick="selectMap(1)">Desert</div>
+                <div class="map-card" onclick="selectMap(2)">Ice</div>
+                <div class="map-card locked" onclick="selectMap(3)">Volcano</div>
+                <div class="map-card locked" onclick="selectMap(4)">Sky</div>
+                <div class="map-card locked" onclick="selectMap(5)">Space</div>
+            </div>
+            <button class="menu-button" onclick="showScreen('main-menu')">BACK</button>
+        </div>
+        
+        <div id="chest-room" class="screen hidden">
+            <h2>OPEN CHESTS</h2>
+            <div class="stats">Gold: <span class="gold" id="gold-amount">100</span></div>
+            <div class="chest-container">
+                <div class="chest small-chest" onclick="openChest('small')">📦</div>
+                <div class="chest big-chest" onclick="openChest('big')">📦</div>
+                <div class="chest legendary-chest" onclick="openChest('legendary')">📦</div>
+            </div>
+            <button class="menu-button" onclick="showScreen('main-menu')">BACK</button>
+        </div>
+        
+        <div id="settings" class="screen hidden">
+            <h2>SETTINGS</h2>
+            <div style="margin: 20px;">
+                <label for="volume">Volume: </label>
+                <input type="range" id="volume" min="0" max="100" value="80">
+            </div>
+            <div style="margin: 20px;">
+                <label for="difficulty">Difficulty: </label>
+                <select id="difficulty">
+                    <option>Easy</option>
+                    <option selected>Medium</option>
+                    <option>Hard</option>
+                </select>
+            </div>
+            <button class="menu-button" onclick="showScreen('main-menu')">BACK</button>
+        </div>
+        
+        <div id="notification" class="notification">Test notification</div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            players: [
+                { character: 0, position: { x: 200, y: 400 }, velocity: { x: 0, y: 0 }, health: 100, attacking: false },
+                { character: 1, position: { x: 800, y: 400 }, velocity: { x: 0, y: 0 }, health: 100, attacking: false }
+            ],
+            selectedMap: 0,
+            unlockedCharacters: [0, 1], // Start with first two characters
+            unlockedMaps: [0, 1, 2], // Start with first three maps
+            gold: 100,
+            gravity: 0.5,
+            groundLevel: 450,
+            gameRunning: false
+        };
+        
+        // Character data
+        const characters = [
+            { name: "Brawler", color: "#3498db", attack: "Punch", speed: 5, jump: 12, damage: 10 },
+            { name: "Runner", color: "#2ecc71", attack: "Dash", speed: 7, jump: 11, damage: 8 },
+            { name: "Mage", color: "#9b59b6", attack: "Fireball", speed: 4, jump: 10, damage: 15 },
+            { name: "Archer", color: "#e74c3c", attack: "Arrow", speed: 5, jump: 11, damage: 12 },
+            { name: "Ninja", color: "#34495e", attack: "Shuriken", speed: 6, jump: 13, damage: 14 },
+            { name: "Wizard", color: "#1abc9c", attack: "Lightning", speed: 4, jump: 9, damage: 18 },
+            { name: "King", color: "#f1c40f", attack: "Royal Sword", speed: 5, jump: 10, damage: 20 },
+            { name: "Dragon", color: "#e67e22", attack: "Fire Breath", speed: 7, jump: 14, damage: 25 }
+        ];
+        
+        // Map data
+        const maps = [
+            { name: "Forest", color: "#2d5a27", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] },
+            { name: "Desert", color: "#d2b55b", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] },
+            { name: "Ice", color: "#a8d8ea", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] },
+            { name: "Volcano", color: "#c0392b", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] },
+            { name: "Sky", color: "#3498db", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] },
+            { name: "Space", color: "#2c3e50", platform: [{ x: 0, y: 450, width: 1000, height: 150 }] }
+        ];
+        
+        // Canvas setup
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Show a notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Show a specific screen
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+        
+        // Select a character for a player
+        function selectCharacter(playerIndex, characterIndex) {
+            if (gameState.unlockedCharacters.includes(characterIndex)) {
+                gameState.players[playerIndex].character = characterIndex;
+                
+                // Update UI
+                document.querySelectorAll('.character-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                document.querySelector(`.character-card[data-character="${characterIndex}"]`).classList.add('selected');
+            } else {
+                showNotification("Character locked! Open chests to unlock.");
+            }
+        }
+        
+        // Select a map
+        function selectMap(mapIndex) {
+            if (gameState.unlockedMaps.includes(mapIndex)) {
+                gameState.selectedMap = mapIndex;
+                
+                // Update UI
+                document.querySelectorAll('.map-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                document.querySelectorAll('.map-card')[mapIndex].classList.add('selected');
+            } else {
+                showNotification("Map locked! Open chests to unlock.");
+            }
+        }
+        
+        // Start the game
+        function startGame() {
+            showScreen(null);
+            gameState.gameRunning = true;
+            gameLoop();
+        }
+        
+        // Open a chest
+        function openChest(type) {
+            let cost = 0;
+            let possibleCharacters = [];
+            
+            if (type === 'small') {
+                cost = 50;
+                possibleCharacters = [2, 3]; // Rare characters
+            } else if (type === 'big') {
+                cost = 120;
+                possibleCharacters = [4, 5]; // Epic characters
+            } else if (type === 'legendary') {
+                cost = 250;
+                possibleCharacters = [6, 7]; // Legendary and Mythic
+            }
+            
+            if (gameState.gold >= cost) {
+                gameState.gold -= cost;
+                document.getElementById('gold-amount').textContent = gameState.gold;
+                
+                // Check if all characters are already unlocked
+                const lockedCharacters = possibleCharacters.filter(char => 
+                    !gameState.unlockedCharacters.includes(char)
+                );
+                
+                if (lockedCharacters.length === 0) {
+                    showNotification("No new characters in this chest!");
+                    return;
+                }
+                
+                // Get a random character from the possible ones
+                const randomIndex = Math.floor(Math.random() * lockedCharacters.length);
+                const unlockedChar = lockedCharacters[randomIndex];
+                
+                // Unlock the character
+                gameState.unlockedCharacters.push(unlockedChar);
+                
+                // Update UI
+                document.querySelector(`.character-card[data-character="${unlockedChar}"]`).classList.remove('locked');
+                
+                showNotification(`Unlocked ${characters[unlockedChar].name}!`);
+            } else {
+                showNotification("Not enough gold! Play games to earn more.");
+            }
+        }
+        
+        // Check unlock code
+        function checkUnlockCode() {
+            const code = document.getElementById('unlock-code').value;
+            if (code === "UNLOCK") {
+                // Unlock everything
+                for (let i = 0; i < characters.length; i++) {
+                    if (!gameState.unlockedCharacters.includes(i)) {
+                        gameState.unlockedCharacters.push(i);
+                        document.querySelector(`.character-card[data-character="${i}"]`).classList.remove('locked');
+                    }
+                }
+                
+                for (let i = 0; i < maps.length; i++) {
+                    if (!gameState.unlockedMaps.includes(i)) {
+                        gameState.unlockedMaps.push(i);
+                        document.querySelectorAll('.map-card')[i].classList.remove('locked');
+                    }
+                }
+                
+                showNotification("All characters and maps unlocked!");
+            } else {
+                showNotification("Invalid code!");
+            }
+        }
+        
+        // Game loop
+        function gameLoop() {
+            if (!gameState.gameRunning) return;
+            
+            // Clear canvas
+            ctx.fillStyle = maps[gameState.selectedMap].color;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw platforms
+            ctx.fillStyle = "#7d5a28";
+            maps[gameState.selectedMap].platform.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            });
+            
+            // Draw players
+            gameState.players.forEach((player, index) => {
+                const char = characters[player.character];
+                
+                // Draw player
+                ctx.fillStyle = char.color;
+                ctx.fillRect(player.position.x - 20, player.position.y - 40, 40, 40);
+                
+                // Draw health bar
+                ctx.fillStyle = "#e74c3c";
+                ctx.fillRect(player.position.x - 25, player.position.y - 60, 50, 10);
+                ctx.fillStyle = "#2ecc71";
+                ctx.fillRect(player.position.x - 25, player.position.y - 60, 50 * (player.health / 100), 10);
+                
+                // Draw player indicator
+                ctx.fillStyle = index === 0 ? "#3498db" : "#e74c3c";
+                ctx.fillText(`Player ${index + 1} - ${char.name}`, player.position.x - 30, player.position.y - 70);
+            });
+            
+            // Draw game stats
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.fillText("Press 'R' to return to menu", 700, 30);
+            
+            // Update game state
+            updateGame();
+            
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Update game state
+        function updateGame() {
+            gameState.players.forEach(player => {
+                // Apply gravity
+                player.velocity.y += gameState.gravity;
+                
+                // Update position
+                player.position.x += player.velocity.x;
+                player.position.y += player.velocity.y;
+                
+                // Ground collision
+                if (player.position.y > gameState.groundLevel) {
+                    player.position.y = gameState.groundLevel;
+                    player.velocity.y = 0;
+                }
+                
+                // Boundary checking
+                if (player.position.x < 20) player.position.x = 20;
+                if (player.position.x > canvas.width - 20) player.position.x = canvas.width - 20;
+            });
+        }
+        
+        // Handle keyboard input
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Player 1 controls (WASD + Shift)
+            if (e.key === 'w' && gameState.players[0].position.y >= gameState.groundLevel) {
+                gameState.players[0].velocity.y = -characters[gameState.players[0].character].jump;
+            }
+            
+            if (e.key === 'a') {
+                gameState.players[0].velocity.x = -characters[gameState.players[0].character].speed;
+            }
+            
+            if (e.key === 'd') {
+                gameState.players[0].velocity.x = characters[gameState.players[0].character].speed;
+            }
+            
+            if (e.key === 'Shift') {
+                gameState.players[0].attacking = true;
+            }
+            
+            // Player 2 controls (Arrow keys)
+            if (e.key === 'ArrowUp' && gameState.players[1].position.y >= gameState.groundLevel) {
+                gameState.players[1].velocity.y = -characters[gameState.players[1].character].jump;
+            }
+            
+            if (e.key === 'ArrowLeft') {
+                gameState.players[1].velocity.x = -characters[gameState.players[1].character].speed;
+            }
+            
+            if (e.key === 'ArrowRight') {
+                gameState.players[1].velocity.x = characters[gameState.players[1].character].speed;
+            }
+            
+            if (e.key === 'ArrowDown') {
+                gameState.players[1].attacking = true;
+            }
+            
+            // Return to menu
+            if (e.key === 'r') {
+                gameState.gameRunning = false;
+                showScreen('main-menu');
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            
+            // Stop horizontal movement when keys are released
+            if (e.key === 'a' || e.key === 'd') {
+                gameState.players[0].velocity.x = 0;
+            }
+            
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                gameState.players[1].velocity.x = 0;
+            }
+            
+            if (e.key === 'Shift') {
+                gameState.players[0].attacking = false;
+            }
+            
+            if (e.key === 'ArrowDown') {
+                gameState.players[1].attacking = false;
+            }
+        });
+        
+        // Initialize the game
+        function init() {
+            // Set initial gold
+            document.getElementById('gold-amount').textContent = gameState.gold;
+            
+            // Select initial characters
+            selectCharacter(0, 0);
+            selectCharacter(1, 1);
+            
+            // Select initial map
+            selectMap(0);
+            
+            // Show main menu
+            showScreen('main-menu');
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
